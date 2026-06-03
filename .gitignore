@@ -1,0 +1,36 @@
+# ============================================
+# Jidex Homes & Properties — Root .gitignore
+# ============================================
+
+# Environment files — NEVER commit these
+.env
+.env.local
+.env.production
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor files
+.vscode/
+.idea/
+
+# Python (backend)
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Node (frontend)
+node_modules/
+
+# Build outputs
+frontend/dist/
+frontend/build/
+
+# Uploads (local dev only)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Logs
+*.log
