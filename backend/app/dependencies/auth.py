@@ -126,3 +126,42 @@ def get_current_user(
 # Cleaner, easier to read, and the type is still enforced.
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+
+# ── Admin-Only Permission Dependency ──────────────────────────────────────────
+
+def require_admin(current_user: CurrentUser) -> User:
+    """
+    Permission dependency that requires the user to have role='admin'.
+
+    Used by every endpoint in the admin module.
+
+    Usage in a route:
+        @router.get("/dashboard")
+        def admin_dashboard(admin: User = Depends(require_admin)):
+            ...
+
+    Raises:
+        HTTPException 403: User is authenticated but not an admin
+    """
+    from app.core.constants import UserRole
+
+    if current_user.role != UserRole.ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+
+    return current_user
+
+
+# ── Type Alias For Cleaner Admin Routes ───────────────────────────────────────
+#
+# Usage in admin endpoints:
+#     def some_admin_route(admin: AdminUser):
+#         ...
+#
+# Cleaner than: admin: User = Depends(require_admin)
+
+AdminUser = Annotated[User, Depends(require_admin)]
