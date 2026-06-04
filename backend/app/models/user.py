@@ -14,11 +14,13 @@ Design decisions:
     * is_active = admin can deactivate an account
     * is_verified = optional email verification (post-MVP)
 - created_at and updated_at via TimestampMixin
+- agent_profile relationship: agents get a linked profile (one-to-one)
 """
 
 import uuid
 from sqlalchemy import Column, String, Boolean
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
 from app.db.base import Base, TimestampMixin
 from app.core.constants import UserRole
@@ -115,6 +117,20 @@ class User(Base, TimestampMixin):
         String(500),            # URL/path to image
         nullable=True,
         doc="URL or path to the user's profile picture.",
+    )
+
+    # ── Relationship To AgentProfile ──────────────────────────
+    # If this user is an agent, this links to their agent profile.
+    # If they're not an agent, this will be None.
+    #
+    # cascade="all, delete-orphan" means:
+    # - If we delete the user, automatically delete their agent_profile
+    # - If we detach the profile from the user, delete it
+    agent_profile = relationship(
+        "AgentProfile",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
 
     # ── Useful String Representation ──────────────────────────

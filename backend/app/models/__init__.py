@@ -13,3 +13,6 @@ Pattern:
 """
 
 from app.models.user import User  # noqa: F401
+from app.models.agent_profile import AgentProfile  # noqa: F401
+from app.models.property import Property  # noqa: F401
+from app.models.property_image import PropertyImage  # noqa: F401
