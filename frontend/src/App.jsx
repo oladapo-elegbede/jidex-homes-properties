@@ -10,57 +10,85 @@
  *   ADMIN routes     → require admin role
  *
  * Each route renders a page component wrapped in an appropriate layout.
- *
- * For now, we have a single "Welcome" route to verify the app works.
- * We'll expand this as we build each page.
  */
 
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+
+import AuthLayout from './layouts/AuthLayout';
+import LoginPage from './pages/auth/LoginPage';
+import { useAuth } from './hooks/useAuth';
 
 
 // ── Temporary Welcome Page ────────────────────────────────────────────────────
-// This will be replaced by real pages soon.
-// For now, it confirms that React + Router + Design System all work together.
+// Shows different content based on whether the user is logged in.
+// This proves AuthContext is working across components.
 function WelcomePage() {
+    const { user, isAuthenticated, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        toast.success('Logged out successfully.');
+    };
+
     return (
         <div className="container-custom section-padding text-center">
-            <h1 className="text-brand-navy">
-                Jidex Homes & Properties
-            </h1>
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-lg)' }}>
+            <h1 className="text-brand-navy">Jidex Homes & Properties</h1>
+            <p style={{ color: 'var(--color-text-secondary)' }}>
                 Premium Property Marketplace Platform
             </p>
 
-            <div style={{
-                marginTop: 'var(--space-2xl)',
-                padding: 'var(--space-xl)',
-                background: 'var(--color-bg-surface)',
-                borderRadius: 'var(--radius-lg)',
-                display: 'inline-block',
-            }}>
-                <h3 className="text-brand-gold">🎨 Design System Working!</h3>
-                <p style={{ marginBottom: 0 }}>
-                    Navy + Gold theme, Playfair Display + Inter fonts, all loaded.
-                </p>
-            </div>
-
-            <div style={{ marginTop: 'var(--space-2xl)' }}>
-                <button className="btn btn-primary" style={{ marginRight: 'var(--space-md)' }}>
-                    Primary Button
-                </button>
-                <button
-                    className="btn"
-                    style={{
-                        background: 'var(--color-brand-gold)',
-                        color: 'white',
-                        border: 'none',
-                        padding: '0.5rem 1rem',
-                        borderRadius: 'var(--radius-md)',
-                    }}
-                >
-                    Accent Button
-                </button>
-            </div>
+            {isAuthenticated ? (
+                // ── Logged In View ────────────────────────────
+                <div style={{ marginTop: 'var(--space-2xl)' }}>
+                    <div
+                        style={{
+                            padding: 'var(--space-xl)',
+                            background: 'var(--color-bg-surface)',
+                            borderRadius: 'var(--radius-lg)',
+                            display: 'inline-block',
+                            marginBottom: 'var(--space-lg)',
+                        }}
+                    >
+                        <h3 className="text-brand-gold">
+                            👋 Welcome back, {user.full_name}!
+                        </h3>
+                        <p style={{ marginBottom: 0 }}>
+                            Logged in as: <strong>{user.email}</strong>
+                            <br />
+                            Role: <strong style={{ textTransform: 'capitalize' }}>{user.role}</strong>
+                        </p>
+                    </div>
+                    <br />
+                    <button
+                        className="btn"
+                        onClick={handleLogout}
+                        style={{
+                            background: 'var(--color-error)',
+                            color: 'white',
+                            border: 'none',
+                            padding: 'var(--space-md) var(--space-xl)',
+                            borderRadius: 'var(--radius-md)',
+                            fontSize: 'var(--font-size-base)',
+                            fontWeight: 'var(--font-weight-semibold)',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        Logout
+                    </button>
+                </div>
+            ) : (
+                // ── Not Logged In View ────────────────────────
+                <div style={{ marginTop: 'var(--space-2xl)' }}>
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => navigate('/login')}
+                    >
+                        Sign In
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
@@ -70,10 +98,18 @@ function WelcomePage() {
 function App() {
     return (
         <Routes>
-            {/* Public Routes */}
+            {/* Public Welcome */}
             <Route path="/" element={<WelcomePage />} />
 
-            {/* More routes will go here as we build pages */}
+            {/* Auth Routes (wrapped in AuthLayout) */}
+            <Route
+                path="/login"
+                element={
+                    <AuthLayout>
+                        <LoginPage />
+                    </AuthLayout>
+                }
+            />
         </Routes>
     );
 }
