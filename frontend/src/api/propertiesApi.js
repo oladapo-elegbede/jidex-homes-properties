@@ -5,8 +5,9 @@
  *
  * Endpoints covered:
  * - GET  /properties              → Browse properties (public, with filters)
- * - GET  /properties/{id}         → Get property details
- * - GET  /agent/properties        → List my listings (agent only)
+ * - GET  /properties/{id}         → Get property details (public, approved only)
+ * - GET  /agent/properties        → List my listings (agent only, any status)
+ * - GET  /agent/properties/{id}   → Get one of my listings (agent only, any status)
  * - POST /agent/properties        → Create a new listing (agent only)
  * - PUT  /agent/properties/{id}   → Update a listing (agent only)
  * - DEL  /agent/properties/{id}   → Delete a listing (agent only)
@@ -46,7 +47,8 @@ export const propertiesApi = {
 
 
     /**
-     * Get full details of a single property.
+     * Get full details of a single property (PUBLIC endpoint).
+     * Only works for approved properties.
      * Increments view_count as a side effect.
      *
      * @param {string} propertyId - Property UUID
@@ -61,12 +63,34 @@ export const propertiesApi = {
     /**
      * List the authenticated agent's own properties.
      * Requires agent role.
+     * Returns properties of ANY status (pending, approved, rejected).
      *
      * @param {Object} params - { page, limit }
      * @returns {Promise} Paginated list of agent's properties
      */
     listMine: async (params = {}) => {
         const response = await apiClient.get('/agent/properties', { params });
+        return response.data;
+    },
+
+
+    /**
+     * Get one of the agent's own properties by ID (AGENT endpoint).
+     *
+     * Unlike getById:
+     * - Requires authentication
+     * - Works for properties of ANY status
+     * - Enforces ownership (must own it or be admin)
+     * - Does NOT increment view_count
+     *
+     * Used by the Edit Listing page (since pending properties
+     * can't be fetched from the public endpoint).
+     *
+     * @param {string} propertyId - Property UUID
+     * @returns {Promise} Full property object with images and agent info
+     */
+    getMineById: async (propertyId) => {
+        const response = await apiClient.get(`/agent/properties/${propertyId}`);
         return response.data;
     },
 

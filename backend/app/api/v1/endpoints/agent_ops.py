@@ -10,6 +10,7 @@ All endpoints in this file:
 
 Endpoints:
 - GET    /agent/properties              → List my listings
+- GET    /agent/properties/{id}         → Get one of my listings (any status)
 - POST   /agent/properties              → Create a new listing
 - PUT    /agent/properties/{id}         → Update my listing
 - DELETE /agent/properties/{id}         → Delete my listing
@@ -21,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.dependencies.auth import CurrentUser
+from app.repositories import property_repository
 from app.schemas.property import (
     PropertyCreate,
     PropertyUpdate,
@@ -82,6 +84,57 @@ def list_my_properties(
         page=page,
         limit=limit,
     )
+
+
+# ── GET /agent/properties/{id} ────────────────────────────────────────────────
+@router.get(
+    "/properties/{property_id}",
+    response_model=PropertyResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get one of my property listings",
+    description=(
+        "Returns full details of a property owned by the authenticated agent. "
+        "Unlike the public endpoint, this works for properties of any status "
+        "(pending, approved, rejected). Used by the edit listing page."
+    ),
+)
+def get_my_property(
+    property_id: UUID,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+) -> PropertyResponse:
+    """
+    Get a single property owned by the current agent.
+
+    Unlike the public endpoint:
+    - Works for properties of any status (pending, approved, rejected)
+    - But enforces ownership (must own the property OR be admin)
+
+    Raises:
+        HTTPException 404: Property doesn't exist
+        HTTPException 403: User doesn't own this property (and isn't admin)
+    """
+    _require_agent_role(current_user)
+
+    prop = property_repository.get_property_by_id(db, property_id)
+
+    if prop is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Property not found.",
+        )
+
+    # Ownership check (admins can access any property)
+    is_owner = prop.agent_id == current_user.id
+    is_admin = current_user.role == UserRole.ADMIN.value
+
+    if not is_owner and not is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this property.",
+        )
+
+    return PropertyResponse.model_validate(prop)
 
 
 # ── POST /agent/properties ────────────────────────────────────────────────────

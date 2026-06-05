@@ -26,6 +26,7 @@ import PropertyDetailPage from './pages/public/PropertyDetailPage';
 // Agent Pages
 import AgentListingsPage from './pages/agent/AgentListingsPage';
 import CreateListingPage from './pages/agent/CreateListingPage';
+import EditListingPage from './pages/agent/EditListingPage';
 
 import { useAuth } from './hooks/useAuth';
 
@@ -226,6 +227,16 @@ function App() {
                     <ProtectedRoute allowedRoles={['agent', 'admin']}>
                         <DashboardLayout>
                             <CreateListingPage />
+                        </DashboardLayout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/agent/listings/:id/edit"
+                element={
+                    <ProtectedRoute allowedRoles={['agent', 'admin']}>
+                        <DashboardLayout>
+                            <EditListingPage />
                         </DashboardLayout>
                     </ProtectedRoute>
                 }

@@ -34,6 +34,7 @@ export const propertyKeys = {
     details: () => [...propertyKeys.all, 'detail'],
     detail: (id) => [...propertyKeys.details(), id],
     myListings: () => [...propertyKeys.all, 'mine'],
+    myListing: (id) => [...propertyKeys.all, 'mine', id],
 };
 
 
@@ -57,9 +58,11 @@ export function useProperties(filters = {}) {
 }
 
 
-// ── Fetch Single Property Details ─────────────────────────────────────────────
+// ── Fetch Single Public Property ──────────────────────────────────────────────
 /**
- * Hook to fetch one property's full details by ID.
+ * Hook to fetch one property's full details by ID (PUBLIC endpoint).
+ * Only works for approved properties.
+ * Increments view_count.
  *
  * @param {string} propertyId - Property UUID
  * @param {Object} options - React Query options (enabled, etc.)
@@ -75,7 +78,33 @@ export function useProperty(propertyId, options = {}) {
 }
 
 
-// ── Fetch Agent's Own Listings ────────────────────────────────────────────────
+// ── Fetch One Of Agent's Own Properties ───────────────────────────────────────
+/**
+ * Hook to fetch an agent's own property by ID (AGENT endpoint).
+ *
+ * Unlike useProperty:
+ * - Requires authentication
+ * - Works for properties of ANY status (pending, approved, rejected)
+ * - Enforces ownership (must own it or be admin)
+ * - Does NOT increment view_count
+ *
+ * Used by the Edit Listing page.
+ *
+ * @param {string} propertyId - Property UUID
+ * @param {Object} options - React Query options
+ * @returns {Object} { data, isLoading, isError, error }
+ */
+export function useMyProperty(propertyId, options = {}) {
+    return useQuery({
+        queryKey: propertyKeys.myListing(propertyId),
+        queryFn: () => propertiesApi.getMineById(propertyId),
+        enabled: !!propertyId,
+        ...options,
+    });
+}
+
+
+// ── Fetch Agent's Own Listings (List) ─────────────────────────────────────────
 /**
  * Hook to fetch the authenticated agent's listings.
  * Requires the user to be logged in as an agent.
@@ -130,7 +159,11 @@ export function useUpdateProperty() {
             queryClient.invalidateQueries({
                 queryKey: propertyKeys.detail(updatedProperty.id),
             });
+            queryClient.invalidateQueries({
+                queryKey: propertyKeys.myListing(updatedProperty.id),
+            });
             queryClient.invalidateQueries({ queryKey: propertyKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: propertyKeys.myListings() });
         },
     });
 }
