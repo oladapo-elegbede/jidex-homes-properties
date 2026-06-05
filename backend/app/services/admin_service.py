@@ -15,7 +15,7 @@ All functions assume the caller is already verified as admin
 
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from fastapi import HTTPException, status
 
@@ -23,6 +23,8 @@ from app.models.user import User
 from app.models.property import Property
 from app.repositories import property_repository, user_repository
 from app.schemas.admin import PropertyApprovalRequest, UserActivationRequest
+from app.schemas.property import PropertyResponse
+from app.schemas.user import UserResponse
 from app.core.constants import UserRole, ListingStatus
 
 
@@ -31,11 +33,6 @@ from app.core.constants import UserRole, ListingStatus
 def get_dashboard_stats(db: Session) -> dict:
     """
     Compute all statistics for the admin dashboard.
-
-    Uses aggregate queries (COUNT) for efficient computation.
-
-    Returns:
-        Dict with user counts, property counts by status, etc.
     """
     # ── User Counts ──────────────────────────────────────────
     total_users = db.query(func.count(User.id)).scalar() or 0
@@ -102,7 +99,8 @@ def list_all_users_paginated(
     """
     List all users on the platform.
 
-    Returns paginated results suitable for an admin user-management table.
+    Returns users converted to UserResponse dicts so they can be
+    serialized to JSON properly (raw SQLAlchemy objects can't be serialized).
     """
     skip = (page - 1) * limit
 
@@ -111,8 +109,14 @@ def list_all_users_paginated(
 
     total_pages = (total + limit - 1) // limit if limit > 0 else 0
 
+    # ── CONVERT TO PYDANTIC FOR JSON SERIALIZATION ──────────
+    # SQLAlchemy User objects can't be auto-serialized by FastAPI.
+    # We convert each to a UserResponse (Pydantic schema) which CAN be serialized.
+    # UserResponse also strips out sensitive fields like password_hash.
+    items = [UserResponse.model_validate(user) for user in users]
+
     return {
-        "items": users,
+        "items": items,
         "total": total,
         "page": page,
         "limit": limit,
@@ -128,22 +132,7 @@ def update_user_activation(
     activation_data: UserActivationRequest,
 ) -> User:
     """
-    Activate or deactivate a user account.
-
-    Soft delete pattern:
-    - Setting is_active=False prevents login but preserves all their data
-    - Setting is_active=True reactivates the account
-
-    Args:
-        db:              Active database session
-        user_id:         Target user's UUID
-        activation_data: Contains is_active boolean
-
-    Returns:
-        The updated User object
-
-    Raises:
-        HTTPException 404: User doesn't exist
+    Activate or deactivate a user account (soft delete pattern).
     """
     user = user_repository.get_user_by_id(db, user_id)
 
@@ -170,18 +159,20 @@ def list_all_properties_paginated(
     """
     List ALL properties on the platform (any status).
 
-    Admins see pending, approved, AND rejected listings.
-    Optionally filter by listing_status for dedicated review queues.
-
-    Args:
-        db:             Active database session
-        page:           Page number
-        limit:          Items per page
-        listing_status: Optional filter (e.g., 'pending' for review queue)
+    Returns properties converted to PropertyResponse dicts so they can be
+    serialized to JSON properly (raw SQLAlchemy objects can't be serialized).
     """
     skip = (page - 1) * limit
 
-    query = db.query(Property).order_by(Property.created_at.desc())
+    # Use joinedload to fetch agent + images in one query (no N+1 problem)
+    query = (
+        db.query(Property)
+        .options(
+            joinedload(Property.agent),
+            joinedload(Property.images),
+        )
+        .order_by(Property.created_at.desc())
+    )
 
     if listing_status:
         query = query.filter(Property.listing_status == listing_status)
@@ -196,8 +187,13 @@ def list_all_properties_paginated(
 
     total_pages = (total + limit - 1) // limit if limit > 0 else 0
 
+    # ── CONVERT TO PYDANTIC FOR JSON SERIALIZATION ──────────
+    # SQLAlchemy Property objects can't be auto-serialized by FastAPI.
+    # We convert each to a PropertyResponse (Pydantic schema) which CAN be serialized.
+    items = [PropertyResponse.model_validate(prop) for prop in properties]
+
     return {
-        "items": properties,
+        "items": items,
         "total": total,
         "page": page,
         "limit": limit,
@@ -219,18 +215,6 @@ def review_property(
     - Property must exist
     - If rejecting, a rejection_reason is REQUIRED
     - Approving clears any previous rejection_reason
-
-    Args:
-        db:            Active database session
-        property_id:   Property to review
-        approval_data: New status + optional rejection reason
-
-    Returns:
-        The updated Property
-
-    Raises:
-        HTTPException 404: Property doesn't exist
-        HTTPException 400: Rejecting without a reason
     """
     prop = property_repository.get_property_by_id(
         db, property_id, include_relations=False

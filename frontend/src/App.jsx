@@ -28,12 +28,17 @@ import AgentListingsPage from './pages/agent/AgentListingsPage';
 import CreateListingPage from './pages/agent/CreateListingPage';
 import EditListingPage from './pages/agent/EditListingPage';
 
+// Admin Pages
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminPropertiesPage from './pages/admin/AdminPropertiesPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+
 import { useAuth } from './hooks/useAuth';
 
 
 // ── Temporary Welcome Page ────────────────────────────────────────────────────
 function WelcomePage() {
-    const { user, isAuthenticated, isAgent, logout } = useAuth();
+    const { user, isAuthenticated, isAgent, isAdmin, logout } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -76,6 +81,24 @@ function WelcomePage() {
                     >
                         Browse Properties
                     </button>
+
+                    {/* Admins see this button */}
+                    {isAdmin && (
+                        <button
+                            onClick={() => navigate('/admin/dashboard')}
+                            className="btn"
+                            style={{
+                                background: 'var(--color-info)',
+                                color: 'white',
+                                border: 'none',
+                                padding: 'var(--space-md) var(--space-xl)',
+                                borderRadius: 'var(--radius-md)',
+                                marginRight: 'var(--space-md)',
+                            }}
+                        >
+                            Admin Dashboard
+                        </button>
+                    )}
 
                     {/* Agents see this button */}
                     {isAgent && (
@@ -241,13 +264,47 @@ function App() {
                     </ProtectedRoute>
                 }
             />
-            {/* Dashboard redirect — go to listings for now */}
             <Route
                 path="/agent/dashboard"
                 element={
                     <ProtectedRoute allowedRoles={['agent', 'admin']}>
                         <DashboardLayout>
                             <AgentListingsPage />
+                        </DashboardLayout>
+                    </ProtectedRoute>
+                }
+            />
+
+
+            {/* ═══════════════════════════════════════════════════
+                ADMIN ROUTES (protected — admin only)
+                ═══════════════════════════════════════════════════ */}
+            <Route
+                path="/admin/dashboard"
+                element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                        <DashboardLayout>
+                            <AdminDashboardPage />
+                        </DashboardLayout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/admin/properties"
+                element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                        <DashboardLayout>
+                            <AdminPropertiesPage />
+                        </DashboardLayout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/admin/users"
+                element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                        <DashboardLayout>
+                            <AdminUsersPage />
                         </DashboardLayout>
                     </ProtectedRoute>
                 }

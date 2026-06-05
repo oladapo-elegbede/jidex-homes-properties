@@ -6,15 +6,12 @@
  * Features:
  * - Sticky sidebar with navigation links
  * - Active link highlighting
- * - Top bar with user info and logout
- * - Responsive: sidebar collapses on mobile
+ * - Different nav for agents vs admins
+ * - User info and logout at bottom
  *
  * Used by:
- * - Agent Dashboard
- * - My Listings
- * - Create Listing
- * - Edit Listing
- * - (later) Admin pages
+ * - Agent Dashboard, My Listings, Create/Edit Listing
+ * - Admin Dashboard, Properties, Users
  *
  * ADD YOUR OFFICIAL JIDEX HOMES & PROPERTIES LOGO HERE
  * (in the sidebar header)
@@ -27,6 +24,8 @@ import {
     Plus,
     LogOut,
     User,
+    Users,
+    Shield,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -34,7 +33,7 @@ import { useAuth } from '../hooks/useAuth';
 
 
 export default function DashboardLayout({ children }) {
-    const { user, logout } = useAuth();
+    const { user, logout, isAdmin } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -111,7 +110,35 @@ export default function DashboardLayout({ children }) {
                 </Link>
 
                 {/* ── Navigation Links ──────────────────────── */}
-                <nav style={{ flex: 1, padding: '0 var(--space-md)' }}>
+                <nav style={{ flex: 1, padding: '0 var(--space-md)', overflowY: 'auto' }}>
+
+                    {/* ── Admin Section (only visible to admins) ─ */}
+                    {isAdmin && (
+                        <>
+                            <NavSectionLabel>Admin</NavSectionLabel>
+                            <SidebarLink
+                                to="/admin/dashboard"
+                                icon={<LayoutDashboard size={18} />}
+                                label="Dashboard"
+                            />
+                            <SidebarLink
+                                to="/admin/properties"
+                                icon={<Shield size={18} />}
+                                label="All Properties"
+                            />
+                            <SidebarLink
+                                to="/admin/users"
+                                icon={<Users size={18} />}
+                                label="All Users"
+                            />
+                            <div style={{ height: 'var(--space-md)' }} />
+                        </>
+                    )}
+
+                    {/* ── Agent Section (visible to agents AND admins) ─ */}
+                    <NavSectionLabel>
+                        {isAdmin ? 'Agent Tools' : 'Agent'}
+                    </NavSectionLabel>
                     <SidebarLink
                         to="/agent/dashboard"
                         icon={<LayoutDashboard size={18} />}
@@ -253,8 +280,30 @@ export default function DashboardLayout({ children }) {
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SIDEBAR LINK COMPONENT (Reusable)
+// SUB-COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════
+
+// ── Section Label (for nav grouping) ─────────────────────────────────────────
+function NavSectionLabel({ children }) {
+    return (
+        <p
+            style={{
+                fontSize: 'var(--font-size-xs)',
+                fontWeight: 'var(--font-weight-semibold)',
+                color: 'rgba(255, 255, 255, 0.5)',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                padding: 'var(--space-sm) var(--space-md)',
+                margin: 0,
+            }}
+        >
+            {children}
+        </p>
+    );
+}
+
+
+// ── Sidebar Link ──────────────────────────────────────────────────────────────
 function SidebarLink({ to, icon, label }) {
     return (
         <NavLink
