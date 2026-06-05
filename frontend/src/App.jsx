@@ -11,6 +11,7 @@ import AuthLayout from './layouts/AuthLayout';
 import PublicLayout from './layouts/PublicLayout';
 import LoginPage from './pages/auth/LoginPage';
 import PropertiesPage from './pages/public/PropertiesPage';
+import PropertyDetailPage from './pages/public/PropertyDetailPage';
 import { useAuth } from './hooks/useAuth';
 
 
@@ -120,6 +121,14 @@ function App() {
                 element={
                     <PublicLayout>
                         <PropertiesPage />
+                    </PublicLayout>
+                }
+            />
+            <Route
+                path="/properties/:id"
+                element={
+                    <PublicLayout>
+                        <PropertyDetailPage />
                     </PublicLayout>
                 }
             />
