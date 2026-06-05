@@ -7,18 +7,32 @@
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
+// Layouts
 import AuthLayout from './layouts/AuthLayout';
 import PublicLayout from './layouts/PublicLayout';
+import DashboardLayout from './layouts/DashboardLayout';
+
+// Route Guards
+import ProtectedRoute from './routes/ProtectedRoute';
+
+// Auth Pages
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+
+// Public Pages
 import PropertiesPage from './pages/public/PropertiesPage';
 import PropertyDetailPage from './pages/public/PropertyDetailPage';
+
+// Agent Pages
+import AgentListingsPage from './pages/agent/AgentListingsPage';
+import CreateListingPage from './pages/agent/CreateListingPage';
+
 import { useAuth } from './hooks/useAuth';
 
 
 // ── Temporary Welcome Page ────────────────────────────────────────────────────
 function WelcomePage() {
-    const { user, isAuthenticated, logout } = useAuth();
+    const { user, isAuthenticated, isAgent, logout } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -61,6 +75,25 @@ function WelcomePage() {
                     >
                         Browse Properties
                     </button>
+
+                    {/* Agents see this button */}
+                    {isAgent && (
+                        <button
+                            onClick={() => navigate('/agent/listings')}
+                            className="btn"
+                            style={{
+                                background: 'var(--color-brand-gold)',
+                                color: 'white',
+                                border: 'none',
+                                padding: 'var(--space-md) var(--space-xl)',
+                                borderRadius: 'var(--radius-md)',
+                                marginRight: 'var(--space-md)',
+                            }}
+                        >
+                            My Listings
+                        </button>
+                    )}
+
                     <button
                         onClick={handleLogout}
                         className="btn"
@@ -123,7 +156,10 @@ function WelcomePage() {
 function App() {
     return (
         <Routes>
-            {/* ─── Public Routes (with Navbar + Footer) ───── */}
+
+            {/* ═══════════════════════════════════════════════════
+                PUBLIC ROUTES (with Navbar + Footer)
+                ═══════════════════════════════════════════════════ */}
             <Route
                 path="/"
                 element={
@@ -149,7 +185,10 @@ function App() {
                 }
             />
 
-            {/* ─── Auth Routes (no navbar — centered card) ─── */}
+
+            {/* ═══════════════════════════════════════════════════
+                AUTH ROUTES (no navbar — centered card)
+                ═══════════════════════════════════════════════════ */}
             <Route
                 path="/login"
                 element={
@@ -166,6 +205,43 @@ function App() {
                     </AuthLayout>
                 }
             />
+
+
+            {/* ═══════════════════════════════════════════════════
+                AGENT ROUTES (protected — agent or admin only)
+                ═══════════════════════════════════════════════════ */}
+            <Route
+                path="/agent/listings"
+                element={
+                    <ProtectedRoute allowedRoles={['agent', 'admin']}>
+                        <DashboardLayout>
+                            <AgentListingsPage />
+                        </DashboardLayout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/agent/listings/new"
+                element={
+                    <ProtectedRoute allowedRoles={['agent', 'admin']}>
+                        <DashboardLayout>
+                            <CreateListingPage />
+                        </DashboardLayout>
+                    </ProtectedRoute>
+                }
+            />
+            {/* Dashboard redirect — go to listings for now */}
+            <Route
+                path="/agent/dashboard"
+                element={
+                    <ProtectedRoute allowedRoles={['agent', 'admin']}>
+                        <DashboardLayout>
+                            <AgentListingsPage />
+                        </DashboardLayout>
+                    </ProtectedRoute>
+                }
+            />
+
         </Routes>
     );
 }
