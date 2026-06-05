@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import AuthLayout from './layouts/AuthLayout';
 import PublicLayout from './layouts/PublicLayout';
 import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
 import PropertiesPage from './pages/public/PropertiesPage';
 import PropertyDetailPage from './pages/public/PropertyDetailPage';
 import { useAuth } from './hooks/useAuth';
@@ -92,9 +93,24 @@ function WelcomePage() {
                             border: 'none',
                             padding: 'var(--space-md) var(--space-xl)',
                             borderRadius: 'var(--radius-md)',
+                            marginRight: 'var(--space-md)',
                         }}
                     >
                         Sign In
+                    </button>
+                    <button
+                        onClick={() => navigate('/register')}
+                        className="btn"
+                        style={{
+                            background: 'transparent',
+                            color: 'var(--color-brand-navy)',
+                            border: '2px solid var(--color-brand-navy)',
+                            padding: 'calc(var(--space-md) - 2px) var(--space-xl)',
+                            borderRadius: 'var(--radius-md)',
+                            fontWeight: 'var(--font-weight-semibold)',
+                        }}
+                    >
+                        Create Account
                     </button>
                 </div>
             )}
@@ -139,6 +155,14 @@ function App() {
                 element={
                     <AuthLayout>
                         <LoginPage />
+                    </AuthLayout>
+                }
+            />
+            <Route
+                path="/register"
+                element={
+                    <AuthLayout>
+                        <RegisterPage />
                     </AuthLayout>
                 }
             />
