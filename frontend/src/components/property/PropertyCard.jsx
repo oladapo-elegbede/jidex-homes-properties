@@ -7,7 +7,7 @@
  * - Premium card design with hover effect
  * - Image with overlay status badge
  * - Placeholder image when no photo available
- * - Truncated title (single line)
+ * - Truncated title (two lines)
  * - Formatted price + listing type
  * - Location with pin icon
  * - Beds/Baths/Area icons row
@@ -25,6 +25,7 @@ import {
     formatArea,
     capitalize,
     getAvailabilityStatusInfo,
+    buildImageUrl,
 } from '../../utils/formatters';
 
 
@@ -32,6 +33,9 @@ export default function PropertyCard({ property }) {
 
     // Get availability status display info (color, label, etc.)
     const statusInfo = getAvailabilityStatusInfo(property.availability_status);
+
+    // Build full image URL (handles relative paths from backend)
+    const imageUrl = buildImageUrl(property.primary_image_url);
 
 
     return (
@@ -76,10 +80,10 @@ export default function PropertyCard({ property }) {
                         overflow: 'hidden',
                     }}
                 >
-                    {property.primary_image_url ? (
+                    {imageUrl ? (
                         // Real image when available
                         <img
-                            src={property.primary_image_url}
+                            src={imageUrl}
                             alt={property.title}
                             style={{
                                 width: '100%',

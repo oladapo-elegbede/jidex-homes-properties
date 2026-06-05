@@ -6,18 +6,29 @@ Entry point of the backend API.
 Responsibilities:
 - Create and configure the FastAPI application instance
 - Register CORS middleware (so the React frontend can call us)
+- Mount static file serving for uploaded property images
 - Include the v1 API router (all endpoints)
-- Set up application metadata (title, description, version)
+- Ensure the uploads directory exists on startup
 
 This file is intentionally THIN. Business logic lives in services,
 data logic lives in repositories, validation lives in schemas.
 """
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.api.v1.router import api_v1_router
+
+
+# ── Ensure Uploads Directory Exists ──────────────────────────────────────────
+# Create the uploads folder structure on startup if it doesn't exist.
+# This is safe to call repeatedly — os.makedirs with exist_ok=True is idempotent.
+UPLOADS_DIR = "uploads"
+PROPERTY_IMAGES_DIR = os.path.join(UPLOADS_DIR, "properties")
+os.makedirs(PROPERTY_IMAGES_DIR, exist_ok=True)
 
 
 # ── FastAPI Application Instance ──────────────────────────────────────────────
@@ -48,6 +59,24 @@ app.add_middleware(
     allow_credentials=True,        # Allow cookies and auth headers
     allow_methods=["*"],           # Allow all HTTP methods (GET, POST, etc.)
     allow_headers=["*"],           # Allow all request headers
+)
+
+
+# ── Mount Static File Serving For Uploads ────────────────────────────────────
+# This makes uploaded images accessible via URL:
+#   File at:  backend/uploads/properties/abc-123/photo.jpg
+#   URL:      http://localhost:8000/uploads/properties/abc-123/photo.jpg
+#
+# StaticFiles is a Starlette feature that efficiently serves files from disk.
+# Mounting at "/uploads" means any request starting with /uploads/* is served
+# from the local "uploads" directory.
+#
+# In production, we'd typically serve these via Cloudinary, S3, or a CDN
+# for better performance and persistence (Railway/Render filesystems reset on deploy).
+app.mount(
+    "/uploads",
+    StaticFiles(directory=UPLOADS_DIR),
+    name="uploads",
 )
 
 

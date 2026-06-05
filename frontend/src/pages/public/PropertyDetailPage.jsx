@@ -43,6 +43,7 @@ import {
     formatRelativeDate,
     capitalize,
     getAvailabilityStatusInfo,
+    buildImageUrl,
 } from '../../utils/formatters';
 
 
@@ -127,6 +128,13 @@ export default function PropertyDetailPage() {
 
     const statusInfo = getAvailabilityStatusInfo(property.availability_status);
 
+    // Build the hero image URL (uses primary image, or first image, or null)
+    const primaryImage = property.images?.find((img) => img.is_primary) || property.images?.[0];
+    const heroImageUrl = primaryImage ? buildImageUrl(primaryImage.image_url) : null;
+
+    // Build gallery thumbnails (excluding the hero image)
+    const galleryImages = property.images?.filter((img) => img.id !== primaryImage?.id) || [];
+
 
     return (
         <div className="container-custom" style={{ padding: 'var(--space-2xl) 0' }}>
@@ -171,12 +179,12 @@ export default function PropertyDetailPage() {
                     background: 'var(--color-bg-surface)',
                     borderRadius: 'var(--radius-lg)',
                     overflow: 'hidden',
-                    marginBottom: 'var(--space-2xl)',
+                    marginBottom: 'var(--space-lg)',
                 }}
             >
-                {property.images && property.images.length > 0 ? (
+                {heroImageUrl ? (
                     <img
-                        src={property.images[0].image_url}
+                        src={heroImageUrl}
                         alt={property.title}
                         style={{
                             width: '100%',
@@ -242,6 +250,44 @@ export default function PropertyDetailPage() {
                     </span>
                 )}
             </div>
+
+
+            {/* ─────────────────────────────────────────────────
+                IMAGE GALLERY (Thumbnails of additional images)
+            ───────────────────────────────────────────────────── */}
+            {galleryImages.length > 0 && (
+                <div
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                        gap: 'var(--space-sm)',
+                        marginBottom: 'var(--space-2xl)',
+                    }}
+                >
+                    {galleryImages.map((image) => (
+                        <div
+                            key={image.id}
+                            style={{
+                                aspectRatio: '1/1',
+                                borderRadius: 'var(--radius-md)',
+                                overflow: 'hidden',
+                                background: 'var(--color-bg-surface)',
+                                border: '1px solid var(--color-border)',
+                            }}
+                        >
+                            <img
+                                src={buildImageUrl(image.image_url)}
+                                alt={property.title}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                }}
+                            />
+                        </div>
+                    ))}
+                </div>
+            )}
 
 
             {/* ─────────────────────────────────────────────────
@@ -471,7 +517,7 @@ export default function PropertyDetailPage() {
                             Listed By
                         </h3>
 
-                        {/* Agent Avatar Placeholder */}
+                        {/* Agent Avatar */}
                         <div
                             style={{
                                 display: 'flex',

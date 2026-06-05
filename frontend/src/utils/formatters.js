@@ -214,3 +214,39 @@ export function getAvailabilityStatusInfo(status) {
         bgColor: 'var(--color-bg-surface)',
     };
 }
+
+// ── Image URL Helpers ────────────────────────────────────────────────────────
+
+/**
+ * Build a full image URL from a relative API path.
+ *
+ * The backend stores images as relative paths like:
+ *   "/uploads/properties/abc-123/photo.jpg"
+ *
+ * For <img> tags we need the absolute URL:
+ *   "http://localhost:8000/uploads/properties/abc-123/photo.jpg"
+ *
+ * This helper prepends the backend base URL automatically.
+ *
+ * @param {string} imagePath - The relative path returned by the API
+ * @returns {string} The full absolute URL
+ */
+export function buildImageUrl(imagePath) {
+    if (!imagePath) return null;
+
+    // If already a full URL (e.g., Cloudinary in production), return as-is
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+        return imagePath;
+    }
+
+    // Get the API base URL and strip "/api/v1" to get the backend root
+    // VITE_API_BASE_URL = "http://localhost:8000/api/v1"
+    // We need:           "http://localhost:8000"
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+    const backendBaseUrl = apiBaseUrl.replace('/api/v1', '');
+
+    // Ensure imagePath starts with /
+    const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+
+    return `${backendBaseUrl}${cleanPath}`;
+}

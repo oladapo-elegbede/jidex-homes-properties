@@ -1,7 +1,7 @@
 """
 Agent Operations Endpoints
 ===========================
-HTTP routes for agents to manage their own property listings.
+HTTP routes for agents to manage their own property listings and images.
 
 All endpoints in this file:
 - REQUIRE authentication (JWT token)
@@ -9,15 +9,26 @@ All endpoints in this file:
 - ENFORCE ownership (agents can only modify their own listings)
 
 Endpoints:
-- GET    /agent/properties              → List my listings
-- GET    /agent/properties/{id}         → Get one of my listings (any status)
-- POST   /agent/properties              → Create a new listing
-- PUT    /agent/properties/{id}         → Update my listing
-- DELETE /agent/properties/{id}         → Delete my listing
+- GET    /agent/properties                              → List my listings
+- GET    /agent/properties/{id}                         → Get one of my listings
+- POST   /agent/properties                              → Create a new listing
+- PUT    /agent/properties/{id}                         → Update my listing
+- DELETE /agent/properties/{id}                         → Delete my listing
+- POST   /agent/properties/{id}/images                  → Upload an image
+- DELETE /agent/properties/{id}/images/{image_id}       → Delete an image
+- PUT    /agent/properties/{id}/images/{image_id}/primary → Set image as primary
 """
 
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    UploadFile,
+    File,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -27,8 +38,9 @@ from app.schemas.property import (
     PropertyCreate,
     PropertyUpdate,
     PropertyResponse,
+    PropertyImageResponse,
 )
-from app.services import property_service
+from app.services import property_service, property_image_service
 from app.core.constants import UserRole
 
 
@@ -40,12 +52,6 @@ router = APIRouter(prefix="/agent", tags=["Agent Operations"])
 def _require_agent_role(current_user: CurrentUser) -> None:
     """
     Verify the user has agent or admin role.
-
-    Used by every endpoint in this file. Regular users (role='user')
-    cannot access agent operations.
-
-    Raises:
-        HTTPException 403: User is not an agent or admin
     """
     if current_user.role not in (UserRole.AGENT.value, UserRole.ADMIN.value):
         raise HTTPException(
@@ -54,15 +60,15 @@ def _require_agent_role(current_user: CurrentUser) -> None:
         )
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# PROPERTY ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════
+
 # ── GET /agent/properties ─────────────────────────────────────────────────────
 @router.get(
     "/properties",
     status_code=status.HTTP_200_OK,
     summary="List my property listings",
-    description=(
-        "Returns all properties owned by the authenticated agent, "
-        "including pending and rejected listings."
-    ),
 )
 def list_my_properties(
     current_user: CurrentUser,
@@ -71,10 +77,7 @@ def list_my_properties(
     limit: int = Query(default=12, ge=1, le=100),
 ) -> dict:
     """
-    List all listings owned by the current agent.
-
-    Unlike the public endpoint, this returns properties of ALL statuses
-    (pending, approved, rejected) so the agent can see everything.
+    List all listings owned by the current agent (any status).
     """
     _require_agent_role(current_user)
 
@@ -92,11 +95,6 @@ def list_my_properties(
     response_model=PropertyResponse,
     status_code=status.HTTP_200_OK,
     summary="Get one of my property listings",
-    description=(
-        "Returns full details of a property owned by the authenticated agent. "
-        "Unlike the public endpoint, this works for properties of any status "
-        "(pending, approved, rejected). Used by the edit listing page."
-    ),
 )
 def get_my_property(
     property_id: UUID,
@@ -105,14 +103,7 @@ def get_my_property(
 ) -> PropertyResponse:
     """
     Get a single property owned by the current agent.
-
-    Unlike the public endpoint:
-    - Works for properties of any status (pending, approved, rejected)
-    - But enforces ownership (must own the property OR be admin)
-
-    Raises:
-        HTTPException 404: Property doesn't exist
-        HTTPException 403: User doesn't own this property (and isn't admin)
+    Works for properties of any status.
     """
     _require_agent_role(current_user)
 
@@ -143,11 +134,6 @@ def get_my_property(
     response_model=PropertyResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new property listing",
-    description=(
-        "Creates a new property owned by the authenticated agent. "
-        "New listings start with status='pending' and become visible "
-        "to the public only after admin approval."
-    ),
 )
 def create_property(
     property_data: PropertyCreate,
@@ -156,12 +142,6 @@ def create_property(
 ) -> PropertyResponse:
     """
     Create a new property listing.
-
-    Flow:
-    1. Verify user is agent/admin
-    2. Pydantic validates the property data
-    3. Service creates the property (agent_id from JWT, status='pending')
-    4. Return the created property
     """
     _require_agent_role(current_user)
 
@@ -180,11 +160,6 @@ def create_property(
     response_model=PropertyResponse,
     status_code=status.HTTP_200_OK,
     summary="Update one of my property listings",
-    description=(
-        "Update fields on an existing property. "
-        "Only the property's owner (or an admin) can update it. "
-        "All fields are optional — only provided fields are updated."
-    ),
 )
 def update_property(
     property_id: UUID,
@@ -194,12 +169,6 @@ def update_property(
 ) -> PropertyResponse:
     """
     Update a property listing.
-
-    Flow:
-    1. Verify user is agent/admin
-    2. Service verifies ownership (raises 403 if not owner)
-    3. Service applies only the provided fields
-    4. Return the updated property
     """
     _require_agent_role(current_user)
 
@@ -218,11 +187,6 @@ def update_property(
     "/properties/{property_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete one of my property listings",
-    description=(
-        "Permanently delete a property. "
-        "Only the owner (or an admin) can delete it. "
-        "All associated images are also deleted (cascade)."
-    ),
 )
 def delete_property(
     property_id: UUID,
@@ -231,8 +195,6 @@ def delete_property(
 ) -> None:
     """
     Delete a property listing.
-
-    Returns 204 No Content (no response body for deletes).
     """
     _require_agent_role(current_user)
 
@@ -241,3 +203,115 @@ def delete_property(
         agent=current_user,
         property_id=property_id,
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# IMAGE ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ── POST /agent/properties/{id}/images ────────────────────────────────────────
+@router.post(
+    "/properties/{property_id}/images",
+    response_model=PropertyImageResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload an image to a property",
+    description=(
+        "Upload a property photo. Supported formats: JPEG, PNG, WebP. "
+        "Maximum size: 5MB. Maximum 10 images per property. "
+        "The first uploaded image becomes the primary (cover) image automatically."
+    ),
+)
+async def upload_property_image(
+    property_id: UUID,
+    current_user: CurrentUser,
+    file: UploadFile = File(..., description="The image file to upload"),
+    db: Session = Depends(get_db),
+) -> PropertyImageResponse:
+    """
+    Upload an image for a property.
+
+    The file is:
+    1. Validated (type, extension, size)
+    2. Saved to disk with a UUID filename
+    3. Recorded in the database
+    4. Marked as primary if it's the first image
+
+    Returns the created PropertyImage record.
+    """
+    _require_agent_role(current_user)
+
+    # Read the file content into memory
+    # (Required to check size and pass to service)
+    file_bytes = await file.read()
+
+    new_image = property_image_service.upload_property_image(
+        db=db,
+        user=current_user,
+        property_id=property_id,
+        file=file,
+        file_bytes=file_bytes,
+    )
+
+    return PropertyImageResponse.model_validate(new_image)
+
+
+# ── DELETE /agent/properties/{id}/images/{image_id} ───────────────────────────
+@router.delete(
+    "/properties/{property_id}/images/{image_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a property image",
+    description=(
+        "Removes both the file from disk and the database record. "
+        "If the deleted image was the primary, another image is "
+        "automatically promoted to primary."
+    ),
+)
+def delete_property_image(
+    property_id: UUID,
+    image_id: UUID,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+) -> None:
+    """
+    Delete an image from a property.
+    """
+    _require_agent_role(current_user)
+
+    property_image_service.delete_property_image(
+        db=db,
+        user=current_user,
+        property_id=property_id,
+        image_id=image_id,
+    )
+
+
+# ── PUT /agent/properties/{id}/images/{image_id}/primary ──────────────────────
+@router.put(
+    "/properties/{property_id}/images/{image_id}/primary",
+    response_model=PropertyImageResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Set an image as the primary (cover) image",
+    description=(
+        "Marks the specified image as the primary image for the property. "
+        "All other images for this property are automatically unset."
+    ),
+)
+def set_primary_image(
+    property_id: UUID,
+    image_id: UUID,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+) -> PropertyImageResponse:
+    """
+    Set an image as the primary/cover image.
+    """
+    _require_agent_role(current_user)
+
+    updated_image = property_image_service.set_image_as_primary(
+        db=db,
+        user=current_user,
+        property_id=property_id,
+        image_id=image_id,
+    )
+
+    return PropertyImageResponse.model_validate(updated_image)

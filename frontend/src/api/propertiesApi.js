@@ -1,16 +1,21 @@
 /**
  * Properties API
  * ===============
- * Wraps all property-related API calls.
+ * Wraps all property-related API calls (properties + images).
  *
  * Endpoints covered:
- * - GET  /properties              → Browse properties (public, with filters)
- * - GET  /properties/{id}         → Get property details (public, approved only)
- * - GET  /agent/properties        → List my listings (agent only, any status)
- * - GET  /agent/properties/{id}   → Get one of my listings (agent only, any status)
- * - POST /agent/properties        → Create a new listing (agent only)
- * - PUT  /agent/properties/{id}   → Update a listing (agent only)
- * - DEL  /agent/properties/{id}   → Delete a listing (agent only)
+ * - GET    /properties              → Browse properties (public, with filters)
+ * - GET    /properties/{id}         → Get property details (public, approved only)
+ * - GET    /agent/properties        → List my listings (agent only, any status)
+ * - GET    /agent/properties/{id}   → Get one of my listings (agent only, any status)
+ * - POST   /agent/properties        → Create a new listing (agent only)
+ * - PUT    /agent/properties/{id}   → Update a listing (agent only)
+ * - DELETE /agent/properties/{id}   → Delete a listing (agent only)
+ *
+ * Image endpoints:
+ * - POST   /agent/properties/{id}/images                      → Upload image
+ * - DELETE /agent/properties/{id}/images/{image_id}           → Delete image
+ * - PUT    /agent/properties/{id}/images/{image_id}/primary   → Set as primary
  *
  * All functions return promises (async).
  */
@@ -22,21 +27,6 @@ export const propertiesApi = {
 
     /**
      * Browse public properties with optional filters and pagination.
-     *
-     * @param {Object} filters
-     * @param {number} filters.page          - Page number (default 1)
-     * @param {number} filters.limit         - Items per page (default 12)
-     * @param {string} filters.city          - Filter by city
-     * @param {number} filters.min_price     - Minimum price
-     * @param {number} filters.max_price     - Maximum price
-     * @param {string} filters.property_type - apartment, house, villa, etc.
-     * @param {string} filters.listing_type  - 'sale' or 'rent'
-     * @param {number} filters.bedrooms      - Minimum bedrooms
-     * @param {number} filters.bathrooms     - Minimum bathrooms
-     * @param {string} filters.sort_by       - created_at, price, bedrooms, area_sqft
-     * @param {string} filters.sort_order    - 'asc' or 'desc'
-     *
-     * @returns {Promise} { items, total, page, limit, pages, has_next, has_prev }
      */
     list: async (filters = {}) => {
         const response = await apiClient.get('/properties', {
@@ -49,10 +39,7 @@ export const propertiesApi = {
     /**
      * Get full details of a single property (PUBLIC endpoint).
      * Only works for approved properties.
-     * Increments view_count as a side effect.
-     *
-     * @param {string} propertyId - Property UUID
-     * @returns {Promise} Full property object with images and agent info
+     * Increments view_count.
      */
     getById: async (propertyId) => {
         const response = await apiClient.get(`/properties/${propertyId}`);
@@ -61,12 +48,7 @@ export const propertiesApi = {
 
 
     /**
-     * List the authenticated agent's own properties.
-     * Requires agent role.
-     * Returns properties of ANY status (pending, approved, rejected).
-     *
-     * @param {Object} params - { page, limit }
-     * @returns {Promise} Paginated list of agent's properties
+     * List the authenticated agent's own properties (any status).
      */
     listMine: async (params = {}) => {
         const response = await apiClient.get('/agent/properties', { params });
@@ -76,18 +58,7 @@ export const propertiesApi = {
 
     /**
      * Get one of the agent's own properties by ID (AGENT endpoint).
-     *
-     * Unlike getById:
-     * - Requires authentication
-     * - Works for properties of ANY status
-     * - Enforces ownership (must own it or be admin)
-     * - Does NOT increment view_count
-     *
-     * Used by the Edit Listing page (since pending properties
-     * can't be fetched from the public endpoint).
-     *
-     * @param {string} propertyId - Property UUID
-     * @returns {Promise} Full property object with images and agent info
+     * Works for ANY status.
      */
     getMineById: async (propertyId) => {
         const response = await apiClient.get(`/agent/properties/${propertyId}`);
@@ -97,10 +68,6 @@ export const propertiesApi = {
 
     /**
      * Create a new property listing.
-     * Requires agent role. agent_id is set from JWT automatically.
-     *
-     * @param {Object} propertyData - Full property data
-     * @returns {Promise} Newly created property
      */
     create: async (propertyData) => {
         const response = await apiClient.post('/agent/properties', propertyData);
@@ -110,11 +77,6 @@ export const propertiesApi = {
 
     /**
      * Update an existing property.
-     * Requires agent role + ownership.
-     *
-     * @param {string} propertyId
-     * @param {Object} updates - Partial property data
-     * @returns {Promise} Updated property
      */
     update: async (propertyId, updates) => {
         const response = await apiClient.put(
@@ -127,12 +89,73 @@ export const propertiesApi = {
 
     /**
      * Delete a property.
-     * Requires agent role + ownership.
-     *
-     * @param {string} propertyId
-     * @returns {Promise} (No response body — 204 No Content)
      */
     delete: async (propertyId) => {
         await apiClient.delete(`/agent/properties/${propertyId}`);
+    },
+
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // IMAGE OPERATIONS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Upload an image for a property.
+     *
+     * Note: Uses FormData (multipart/form-data) because we're uploading a file.
+     * This is the standard way browsers send files to a server.
+     *
+     * @param {string} propertyId - Property UUID
+     * @param {File} file - The image file from an <input type="file">
+     * @returns {Promise} Newly created PropertyImage record
+     */
+    uploadImage: async (propertyId, file) => {
+        // Create FormData and append the file
+        // FormData is a special object for sending files via HTTP
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await apiClient.post(
+            `/agent/properties/${propertyId}/images`,
+            formData,
+            {
+                headers: {
+                    // Important: tell axios this is a file upload, not JSON
+                    'Content-Type': 'multipart/form-data',
+                },
+            },
+        );
+        return response.data;
+    },
+
+
+    /**
+     * Delete an image from a property.
+     * Removes both the file from disk and the database record.
+     *
+     * @param {string} propertyId - Property UUID
+     * @param {string} imageId    - Image UUID
+     * @returns {Promise} (No response body — 204 No Content)
+     */
+    deleteImage: async (propertyId, imageId) => {
+        await apiClient.delete(
+            `/agent/properties/${propertyId}/images/${imageId}`,
+        );
+    },
+
+
+    /**
+     * Set an image as the primary (cover) image for a property.
+     * Automatically unsets is_primary on all other images.
+     *
+     * @param {string} propertyId - Property UUID
+     * @param {string} imageId    - Image UUID
+     * @returns {Promise} Updated PropertyImage record
+     */
+    setPrimaryImage: async (propertyId, imageId) => {
+        const response = await apiClient.put(
+            `/agent/properties/${propertyId}/images/${imageId}/primary`,
+        );
+        return response.data;
     },
 };

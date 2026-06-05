@@ -3,23 +3,12 @@
  * ================
  * Page for agents to edit existing property listings.
  *
+ * Now includes the ImageUploader for managing property photos!
+ *
  * Connected to backend:
- * - GET /api/v1/agent/properties/{id}  → fetch current data (works for any status)
+ * - GET /api/v1/agent/properties/{id}  → fetch current data
  * - PUT /api/v1/agent/properties/{id}  → update
- *
- * Flow:
- * 1. Get property ID from URL (/agent/listings/:id/edit)
- * 2. Fetch the property's current data using useMyProperty (works for pending too!)
- * 3. Pass data to PropertyForm (which pre-fills the inputs)
- * 4. On submit, call the update API
- * 5. Show success toast and redirect
- *
- * Why useMyProperty and not useProperty?
- * - useProperty calls the PUBLIC endpoint which only returns approved listings
- * - useMyProperty calls the AGENT endpoint which returns the agent's own listings
- *   regardless of status (pending, approved, rejected)
- *
- * Loading/error states for fetching the property.
+ * - POST/DELETE/PUT for image operations (handled by ImageUploader)
  */
 
 import { useParams, useNavigate } from 'react-router-dom';
@@ -27,6 +16,7 @@ import toast from 'react-hot-toast';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 
 import PropertyForm from '../../components/property/PropertyForm';
+import ImageUploader from '../../components/property/ImageUploader';
 import { useMyProperty, useUpdateProperty } from '../../hooks/useProperties';
 
 
@@ -34,7 +24,7 @@ export default function EditListingPage() {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    // Fetch the existing property (using agent endpoint — works for any status)
+    // Fetch the existing property (agent endpoint — works for any status)
     const { data: property, isLoading, isError, error } = useMyProperty(id);
 
     // Update mutation
@@ -156,6 +146,14 @@ export default function EditListingPage() {
                     Update the details of "{property.title}".
                 </p>
             </div>
+
+
+            {/* ── IMAGE UPLOADER (NEW!) ─────────────────────── */}
+            <ImageUploader
+                propertyId={id}
+                images={property.images || []}
+                maxImages={10}
+            />
 
 
             {/* ── The Reusable Form (Pre-Filled!) ──────────── */}
