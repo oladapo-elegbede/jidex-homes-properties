@@ -158,4 +158,4 @@ export const propertiesApi = {
         );
         return response.data;
     },
-};
+}; 

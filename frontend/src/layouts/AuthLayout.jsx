@@ -3,12 +3,12 @@
  * ===========
  * Layout wrapper for authentication pages (Login, Register).
  *
- * Design pattern: Centered card on a clean background.
+ * Design pattern: Centered card on a clean background with brand logo.
  *
  * Structure:
  *   ┌────────────────────────────────────┐
  *   │                                    │
- *   │         [Brand Logo]               │
+ *   │      [JIDEX HOMES LOGO]            │
  *   │                                    │
  *   │      ┌─────────────────────┐       │
  *   │      │                     │       │
@@ -21,9 +21,6 @@
  *   │     Footer copyright text          │
  *   │                                    │
  *   └────────────────────────────────────┘
- *
- * Note: Logo is a text placeholder for now.
- * ADD YOUR OFFICIAL JIDEX HOMES & PROPERTIES LOGO HERE later.
  */
 
 import { Link } from 'react-router-dom';
@@ -44,13 +41,9 @@ export default function AuthLayout({ children }) {
             <header
                 style={{
                     textAlign: 'center',
-                    padding: 'var(--space-2xl) 0',
+                    padding: 'var(--space-xl) 0',
                 }}
             >
-                {/*
-                    ADD YOUR OFFICIAL JIDEX HOMES & PROPERTIES LOGO HERE
-                    Replace this text with: <img src="/logo.png" alt="Jidex Homes" />
-                */}
                 <Link
                     to="/"
                     style={{
@@ -58,27 +51,14 @@ export default function AuthLayout({ children }) {
                         display: 'inline-block',
                     }}
                 >
-                    <h1
+                    <img
+                        src="/jidex-logo.png"
+                        alt="Jidex Homes & Properties"
                         style={{
-                            color: 'var(--color-brand-navy)',
-                            fontSize: 'var(--font-size-3xl)',
-                            marginBottom: 'var(--space-xs)',
+                            height: '120px',
+                            width: 'auto',
                         }}
-                    >
-                        Jidex Homes
-                    </h1>
-                    <p
-                        style={{
-                            color: 'var(--color-brand-gold)',
-                            fontSize: 'var(--font-size-sm)',
-                            letterSpacing: '2px',
-                            textTransform: 'uppercase',
-                            fontWeight: 'var(--font-weight-semibold)',
-                            margin: 0,
-                        }}
-                    >
-                        &amp; Properties
-                    </p>
+                    />
                 </Link>
             </header>
 

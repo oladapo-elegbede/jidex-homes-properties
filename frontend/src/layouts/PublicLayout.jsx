@@ -4,18 +4,11 @@
  * Layout wrapper for public pages (Home, Properties, Agents, etc.).
  *
  * Structure:
- *   - Navbar (sticky at top)
+ *   - Navbar (sticky at top) with logo
  *   - Main content area (renders children)
- *   - Footer (sticky at bottom)
+ *   - Footer (sticky at bottom) with logo
  *
- * Navbar shows different content based on auth state:
- *   - Not logged in: Sign In + Register buttons
- *   - Logged in: User name + Logout
- *   - Agent: + Dashboard link
- *   - Admin: + Admin link
- *
- * ADD YOUR OFFICIAL JIDEX HOMES & PROPERTIES LOGO HERE
- * (in the navbar — currently uses text branding)
+ * Navbar shows different content based on auth state.
  */
 
 import { Link, useNavigate } from 'react-router-dom';
@@ -63,45 +56,26 @@ export default function PublicLayout({ children }) {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: 'var(--space-lg) 0',
+                        padding: 'var(--space-md) 0',
                     }}
                 >
                     {/* ── Logo / Brand ───────────────────────── */}
-                    {/*
-                        ADD YOUR OFFICIAL JIDEX HOMES & PROPERTIES LOGO HERE
-                        Replace this Link block with: <img src="/logo.png" alt="Jidex Homes" />
-                    */}
                     <Link
                         to="/"
                         style={{
                             textDecoration: 'none',
                             display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'flex-start',
+                            alignItems: 'center',
                         }}
                     >
-                        <span
+                        <img
+                            src="/jidex-logo.png"
+                            alt="Jidex Homes & Properties"
                             style={{
-                                fontFamily: 'var(--font-heading)',
-                                fontSize: 'var(--font-size-xl)',
-                                fontWeight: 'var(--font-weight-bold)',
-                                color: 'var(--color-brand-navy)',
-                                lineHeight: 1,
+                                height: '55px',
+                                width: 'auto',
                             }}
-                        >
-                            Jidex Homes
-                        </span>
-                        <span
-                            style={{
-                                fontSize: '0.625rem',
-                                color: 'var(--color-brand-gold)',
-                                letterSpacing: '2px',
-                                textTransform: 'uppercase',
-                                fontWeight: 'var(--font-weight-semibold)',
-                            }}
-                        >
-                            &amp; Properties
-                        </span>
+                        />
                     </Link>
 
                     {/* ── Navigation Links ───────────────────── */}
@@ -239,38 +213,24 @@ export default function PublicLayout({ children }) {
                             marginBottom: 'var(--space-2xl)',
                         }}
                     >
-                        {/*
-                            ADD YOUR OFFICIAL JIDEX HOMES & PROPERTIES LOGO HERE
-                            (the white version of your logo for the dark footer)
-                        */}
-                        <div>
-                            <h3
+                        {/* Footer Logo & Tagline */}
+                        <div style={{ maxWidth: '350px' }}>
+                            <img
+                                src="/jidex-logo.png"
+                                alt="Jidex Homes & Properties"
                                 style={{
-                                    color: 'white',
-                                    fontSize: 'var(--font-size-xl)',
-                                    marginBottom: 'var(--space-xs)',
+                                    height: '70px',
+                                    width: 'auto',
+                                    marginBottom: 'var(--space-md)',
+                                    // Make logo visible on dark navy background
+                                    filter: 'brightness(0) invert(1) sepia(1) hue-rotate(15deg) saturate(8)',
                                 }}
-                            >
-                                Jidex Homes
-                            </h3>
-                            <p
-                                style={{
-                                    color: 'var(--color-brand-gold)',
-                                    fontSize: 'var(--font-size-xs)',
-                                    letterSpacing: '2px',
-                                    textTransform: 'uppercase',
-                                    fontWeight: 'var(--font-weight-semibold)',
-                                    margin: 0,
-                                }}
-                            >
-                                &amp; Properties
-                            </p>
+                            />
                             <p
                                 style={{
                                     color: 'rgba(255, 255, 255, 0.7)',
                                     fontSize: 'var(--font-size-sm)',
-                                    marginTop: 'var(--space-md)',
-                                    maxWidth: '350px',
+                                    margin: 0,
                                 }}
                             >
                                 Premium property marketplace connecting buyers, renters,

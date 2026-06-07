@@ -2,6 +2,9 @@
  * App Component
  * =============
  * Root component that defines all application routes.
+ *
+ * Route order matters! The catch-all "*" route MUST be last,
+ * otherwise it would match everything and prevent other routes from working.
  */
 
 import { Routes, Route, useNavigate } from 'react-router-dom';
@@ -32,6 +35,9 @@ import EditListingPage from './pages/agent/EditListingPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminPropertiesPage from './pages/admin/AdminPropertiesPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
+
+// Error Pages
+import NotFoundPage from './pages/error/NotFoundPage';
 
 import { useAuth } from './hooks/useAuth';
 
@@ -307,6 +313,23 @@ function App() {
                             <AdminUsersPage />
                         </DashboardLayout>
                     </ProtectedRoute>
+                }
+            />
+
+
+            {/* ═══════════════════════════════════════════════════
+                CATCH-ALL 404 ROUTE (MUST BE LAST!)
+                ═══════════════════════════════════════════════════
+                The path="*" matches ANY URL that didn't match above.
+                If this were placed FIRST, it would match everything
+                and prevent other routes from working.
+                ═══════════════════════════════════════════════════ */}
+            <Route
+                path="*"
+                element={
+                    <PublicLayout>
+                        <NotFoundPage />
+                    </PublicLayout>
                 }
             />
 

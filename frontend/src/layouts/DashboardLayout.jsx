@@ -8,13 +8,6 @@
  * - Active link highlighting
  * - Different nav for agents vs admins
  * - User info and logout at bottom
- *
- * Used by:
- * - Agent Dashboard, My Listings, Create/Edit Listing
- * - Admin Dashboard, Properties, Users
- *
- * ADD YOUR OFFICIAL JIDEX HOMES & PROPERTIES LOGO HERE
- * (in the sidebar header)
  */
 
 import { Link, NavLink, useNavigate } from 'react-router-dom';
@@ -61,7 +54,7 @@ export default function DashboardLayout({ children }) {
                 style={{
                     background: 'var(--color-brand-navy)',
                     color: 'white',
-                    padding: 'var(--space-xl) 0',
+                    padding: 'var(--space-lg) 0',
                     display: 'flex',
                     flexDirection: 'column',
                     position: 'sticky',
@@ -70,43 +63,26 @@ export default function DashboardLayout({ children }) {
                 }}
             >
                 {/* ── Sidebar Header (Logo) ──────────────────── */}
-                {/*
-                    ADD YOUR OFFICIAL JIDEX HOMES & PROPERTIES LOGO HERE
-                    Replace this Link block with: <img src="/logo-white.png" />
-                */}
                 <Link
                     to="/"
                     style={{
                         textDecoration: 'none',
                         display: 'flex',
-                        flexDirection: 'column',
-                        padding: '0 var(--space-xl)',
-                        marginBottom: 'var(--space-2xl)',
+                        justifyContent: 'center',
+                        padding: '0 var(--space-md)',
+                        marginBottom: 'var(--space-xl)',
                     }}
                 >
-                    <span
+                    <img
+                        src="/jidex-logo.png"
+                        alt="Jidex Homes & Properties"
                         style={{
-                            fontFamily: 'var(--font-heading)',
-                            fontSize: 'var(--font-size-xl)',
-                            fontWeight: 'var(--font-weight-bold)',
-                            color: 'white',
-                            lineHeight: 1,
+                            height: '80px',
+                            width: 'auto',
+                            // Brighten the gold logo on dark navy background
+                            filter: 'brightness(0) invert(1) sepia(1) hue-rotate(15deg) saturate(8)',
                         }}
-                    >
-                        Jidex Homes
-                    </span>
-                    <span
-                        style={{
-                            fontSize: '0.625rem',
-                            color: 'var(--color-brand-gold)',
-                            letterSpacing: '2px',
-                            textTransform: 'uppercase',
-                            fontWeight: 'var(--font-weight-semibold)',
-                            marginTop: '0.125rem',
-                        }}
-                    >
-                        &amp; Properties
-                    </span>
+                    />
                 </Link>
 
                 {/* ── Navigation Links ──────────────────────── */}
