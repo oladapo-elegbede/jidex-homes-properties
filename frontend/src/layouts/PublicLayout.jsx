@@ -1,18 +1,18 @@
 /**
  * PublicLayout
  * =============
- * Layout wrapper for public pages (Home, Properties, Agents, etc.).
+ * Layout wrapper for public pages with responsive navbar.
  *
- * Structure:
- *   - Navbar (sticky at top) with logo
- *   - Main content area (renders children)
- *   - Footer (sticky at bottom) with logo
- *
- * Navbar shows different content based on auth state.
+ * Features:
+ * - Desktop: Full horizontal navbar with links
+ * - Mobile: Hamburger menu that slides open from the right
+ * - Sticky positioning
+ * - Footer with logo
  */
 
-import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { LogOut, User, Menu, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { useAuth } from '../hooks/useAuth';
@@ -21,12 +21,53 @@ import { useAuth } from '../hooks/useAuth';
 export default function PublicLayout({ children }) {
     const { user, isAuthenticated, logout } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Mobile menu open/closed state
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+
+    // ── Close Mobile Menu When Route Changes ─────────────────
+    // Otherwise the menu stays open after clicking a link
+    useEffect(() => {
+        setIsMobileMenuOpen(false);
+    }, [location.pathname]);
+
+
+    // ── Close Mobile Menu When Window Resizes To Desktop ─────
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth >= 768) {
+                setIsMobileMenuOpen(false);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+
+    // ── Lock Body Scroll When Mobile Menu Is Open ────────────
+    useEffect(() => {
+        if (isMobileMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+
+        // Cleanup on unmount
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isMobileMenuOpen]);
+
 
     const handleLogout = () => {
         logout();
         toast.success('Logged out successfully.');
         navigate('/');
     };
+
 
     return (
         <div
@@ -59,7 +100,7 @@ export default function PublicLayout({ children }) {
                         padding: 'var(--space-md) 0',
                     }}
                 >
-                    {/* ── Logo / Brand ───────────────────────── */}
+                    {/* ── Logo ──────────────────────────────── */}
                     <Link
                         to="/"
                         style={{
@@ -78,8 +119,10 @@ export default function PublicLayout({ children }) {
                         />
                     </Link>
 
-                    {/* ── Navigation Links ───────────────────── */}
+
+                    {/* ── DESKTOP NAVIGATION (hidden on mobile) ── */}
                     <div
+                        className="desktop-nav"
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -99,8 +142,10 @@ export default function PublicLayout({ children }) {
                         </Link>
                     </div>
 
-                    {/* ── Auth Buttons ───────────────────────── */}
+
+                    {/* ── DESKTOP AUTH BUTTONS (hidden on mobile) ── */}
                     <div
+                        className="desktop-auth"
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -108,7 +153,6 @@ export default function PublicLayout({ children }) {
                         }}
                     >
                         {isAuthenticated ? (
-                            // ── Logged In State ──────────────
                             <>
                                 <div
                                     style={{
@@ -150,7 +194,6 @@ export default function PublicLayout({ children }) {
                                 </button>
                             </>
                         ) : (
-                            // ── Logged Out State ─────────────
                             <>
                                 <Link
                                     to="/login"
@@ -181,8 +224,247 @@ export default function PublicLayout({ children }) {
                             </>
                         )}
                     </div>
+
+
+                    {/* ── MOBILE HAMBURGER BUTTON (hidden on desktop) ── */}
+                    <button
+                        className="mobile-menu-button"
+                        onClick={() => setIsMobileMenuOpen(true)}
+                        aria-label="Open menu"
+                        style={{
+                            display: 'none',
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: 'var(--space-sm)',
+                            color: 'var(--color-brand-navy)',
+                        }}
+                    >
+                        <Menu size={28} />
+                    </button>
                 </nav>
             </header>
+
+
+            {/* ═══════════════════════════════════════════════════
+                MOBILE MENU OVERLAY
+                ═══════════════════════════════════════════════════ */}
+            {isMobileMenuOpen && (
+                <>
+                    {/* Backdrop (click to close) */}
+                    <div
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0, 0, 0, 0.5)',
+                            zIndex: 'var(--z-modal-overlay)',
+                            animation: 'fadeIn 200ms ease',
+                        }}
+                    />
+
+                    {/* Slide-in menu panel */}
+                    <div
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            right: 0,
+                            bottom: 0,
+                            width: '85%',
+                            maxWidth: '320px',
+                            background: 'white',
+                            zIndex: 'var(--z-modal)',
+                            padding: 'var(--space-xl)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.15)',
+                            animation: 'slideInRight 250ms ease',
+                        }}
+                    >
+                        {/* Close button */}
+                        <button
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            aria-label="Close menu"
+                            style={{
+                                position: 'absolute',
+                                top: 'var(--space-lg)',
+                                right: 'var(--space-lg)',
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                color: 'var(--color-text-secondary)',
+                                padding: 'var(--space-sm)',
+                            }}
+                        >
+                            <X size={24} />
+                        </button>
+
+                        {/* Logo at top */}
+                        <div
+                            style={{
+                                marginBottom: 'var(--space-2xl)',
+                                marginTop: 'var(--space-sm)',
+                            }}
+                        >
+                            <img
+                                src="/jidex-logo.png"
+                                alt="Jidex Homes & Properties"
+                                style={{
+                                    height: '50px',
+                                    width: 'auto',
+                                }}
+                            />
+                        </div>
+
+                        {/* Navigation links */}
+                        <nav
+                            style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 'var(--space-xs)',
+                            }}
+                        >
+                            <MobileLink to="/properties">Properties</MobileLink>
+
+                            {isAuthenticated && (
+                                <>
+                                    {/* User info */}
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 'var(--space-sm)',
+                                            padding: 'var(--space-md)',
+                                            marginTop: 'var(--space-md)',
+                                            background: 'var(--color-bg-surface)',
+                                            borderRadius: 'var(--radius-md)',
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                width: '40px',
+                                                height: '40px',
+                                                borderRadius: 'var(--radius-full)',
+                                                background: 'var(--color-brand-gold)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: 'var(--color-brand-navy)',
+                                                flexShrink: 0,
+                                            }}
+                                        >
+                                            <User size={20} />
+                                        </div>
+                                        <div style={{ overflow: 'hidden' }}>
+                                            <p
+                                                style={{
+                                                    margin: 0,
+                                                    fontWeight: 'var(--font-weight-semibold)',
+                                                    fontSize: 'var(--font-size-sm)',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                }}
+                                            >
+                                                {user.full_name}
+                                            </p>
+                                            <p
+                                                style={{
+                                                    margin: 0,
+                                                    fontSize: 'var(--font-size-xs)',
+                                                    color: 'var(--color-text-secondary)',
+                                                    textTransform: 'capitalize',
+                                                }}
+                                            >
+                                                {user.role}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </nav>
+
+                        {/* Bottom auth buttons */}
+                        <div
+                            style={{
+                                marginTop: 'auto',
+                                paddingTop: 'var(--space-xl)',
+                                borderTop: '1px solid var(--color-border)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 'var(--space-sm)',
+                            }}
+                        >
+                            {isAuthenticated ? (
+                                <button
+                                    onClick={handleLogout}
+                                    style={{
+                                        width: '100%',
+                                        padding: 'var(--space-md)',
+                                        background: 'var(--color-error)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: 'var(--radius-md)',
+                                        fontSize: 'var(--font-size-base)',
+                                        fontWeight: 'var(--font-weight-semibold)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 'var(--space-xs)',
+                                    }}
+                                >
+                                    <LogOut size={18} />
+                                    Logout
+                                </button>
+                            ) : (
+                                <>
+                                    <Link
+                                        to="/login"
+                                        style={{
+                                            width: '100%',
+                                            padding: 'var(--space-md)',
+                                            background: 'transparent',
+                                            color: 'var(--color-brand-navy)',
+                                            border: '1px solid var(--color-brand-navy)',
+                                            borderRadius: 'var(--radius-md)',
+                                            fontSize: 'var(--font-size-base)',
+                                            fontWeight: 'var(--font-weight-semibold)',
+                                            textDecoration: 'none',
+                                            textAlign: 'center',
+                                            display: 'block',
+                                        }}
+                                    >
+                                        Sign In
+                                    </Link>
+                                    <Link
+                                        to="/register"
+                                        style={{
+                                            width: '100%',
+                                            padding: 'var(--space-md)',
+                                            background: 'var(--color-brand-navy)',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: 'var(--radius-md)',
+                                            fontSize: 'var(--font-size-base)',
+                                            fontWeight: 'var(--font-weight-semibold)',
+                                            textDecoration: 'none',
+                                            textAlign: 'center',
+                                            display: 'block',
+                                        }}
+                                    >
+                                        Get Started
+                                    </Link>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
+
 
             {/* ═══════════════════════════════════════════════════
                 MAIN CONTENT AREA
@@ -190,6 +472,7 @@ export default function PublicLayout({ children }) {
             <main style={{ flex: 1 }}>
                 {children}
             </main>
+
 
             {/* ═══════════════════════════════════════════════════
                 FOOTER
@@ -213,7 +496,6 @@ export default function PublicLayout({ children }) {
                             marginBottom: 'var(--space-2xl)',
                         }}
                     >
-                        {/* Footer Logo & Tagline */}
                         <div style={{ maxWidth: '350px' }}>
                             <img
                                 src="/jidex-logo.png"
@@ -222,7 +504,6 @@ export default function PublicLayout({ children }) {
                                     height: '70px',
                                     width: 'auto',
                                     marginBottom: 'var(--space-md)',
-                                    // Make logo visible on dark navy background
                                     filter: 'brightness(0) invert(1) sepia(1) hue-rotate(15deg) saturate(8)',
                                 }}
                             />
@@ -303,6 +584,70 @@ export default function PublicLayout({ children }) {
                     </div>
                 </div>
             </footer>
+
+
+            {/* ═══════════════════════════════════════════════════
+                RESPONSIVE STYLES + ANIMATIONS
+                ═══════════════════════════════════════════════════ */}
+            <style>
+                {`
+                    /* Animations */
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+
+                    @keyframes slideInRight {
+                        from { transform: translateX(100%); }
+                        to { transform: translateX(0); }
+                    }
+
+                    /* Mobile breakpoint: < 768px */
+                    @media (max-width: 767px) {
+                        .desktop-nav,
+                        .desktop-auth {
+                            display: none !important;
+                        }
+                        .mobile-menu-button {
+                            display: flex !important;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                    }
+                `}
+            </style>
+
+            {/* ── Mobile Link Sub-Component ───────────────── */}
         </div>
+    );
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MOBILE LINK SUB-COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+function MobileLink({ to, children }) {
+    return (
+        <Link
+            to={to}
+            style={{
+                display: 'block',
+                padding: 'var(--space-md)',
+                color: 'var(--color-text-primary)',
+                fontSize: 'var(--font-size-lg)',
+                fontWeight: 'var(--font-weight-semibold)',
+                textDecoration: 'none',
+                borderRadius: 'var(--radius-md)',
+                transition: 'background var(--transition-fast)',
+            }}
+            onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--color-bg-surface)';
+            }}
+            onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+            }}
+        >
+            {children}
+        </Link>
     );
 }
