@@ -308,3 +308,4 @@ Built with ❤️ as a demonstration of full-stack engineering capabilities
 ⭐ If you find this project interesting, please consider giving it a star!
 
 </div> ```
+
