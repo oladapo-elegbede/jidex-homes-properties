@@ -23,7 +23,6 @@ bcrypt==4.0.1
 
 # File Uploads
 python-multipart==0.0.9
-pillow==10.2.0
 
 # Environment
 python-dotenv==1.0.1
